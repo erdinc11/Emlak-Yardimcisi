@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#F5F5F7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Emlak Yardımcısı — Telefon</title>
+  <link rel="stylesheet" href="assets/styles.css?v=20261119u" />
+  <style>
+    body{overflow:hidden;background:#F6F6F8}
+    .phone{
+      height:100dvh;display:flex;flex-direction:column;
+      max-width:560px;margin:0 auto;
+      padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
+      gap:10px;
+    }
+    .phone-top{
+      flex:0 0 auto;display:flex;align-items:center;gap:11px;
+      padding:9px 14px;border-radius:20px;
+      background:rgba(255,255,255,.86);border:1px solid var(--line-2);
+      box-shadow:var(--shadow-1);backdrop-filter:blur(20px);
+    }
+    .phone-top .brand-mark{width:34px;height:34px;border-radius:11px}
+    .phone-top .t{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+    .phone-top .t b{font-size:13.5px;font-weight:630;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .phone-top .t span{font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .phone-top .dotwrap{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--faint);background:var(--surface-2);padding:5px 9px;border-radius:999px;flex:0 0 auto}
+    .phone-top .dotwrap i{width:6px;height:6px;border-radius:50%;background:var(--amber);display:block}
+    .phone-top .dotwrap.on i{background:var(--green)}
+
+    .phone-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:2px;overscroll-behavior:contain}
+    .phone-scroll::-webkit-scrollbar{display:none}
+
+    .upload-card{
+      background:#fff;border:1px solid var(--line);border-radius:24px;
+      padding:16px;box-shadow:var(--shadow-1);flex:0 0 auto;
+    }
+    .upload-card h2{margin:0;font-size:15px;font-weight:640;letter-spacing:-.2px}
+    .upload-card p{margin:4px 0 13px;font-size:12px;color:var(--faint);line-height:1.45}
+    .upload-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .up-btn{
+      height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;gap:8px;
+      font-size:13px;font-weight:600;transition:transform .16s var(--spring),background .18s;
+    }
+    .up-btn:active{transform:scale(.97)}
+    .up-btn svg{width:18px;height:18px}
+    .up-btn.cam{background:var(--ink);color:#fff;box-shadow:0 8px 20px rgba(14,15,18,.18)}
+    .up-btn.gal{background:var(--surface-2);color:var(--ink)}
+    .phone-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+    .phone-photos:empty{display:none;margin:0}
+    .ph{
+      position:relative;aspect-ratio:1;border-radius:13px;overflow:hidden;
+      background:var(--surface-2);border:1px solid var(--line-2);
+      animation:refIn .35s var(--spring) both;
+    }
+    .ph img{width:100%;height:100%;object-fit:cover;display:block}
+    .ph .veil{font-size:9.5px;gap:4px;padding:5px}
+    .ph .veil .orb{width:15px;height:15px}
+    .phone-photos:not(:empty) ~ .up-note{display:block}
+
+    .phone-chat{
+      flex:0 0 auto;background:rgba(255,255,255,.8);
+      border:1px solid var(--line-2);border-radius:24px;
+      padding:14px 12px;box-shadow:var(--shadow-1);
+      display:flex;flex-direction:column;gap:12px;
+    }
+    .phone-chat .p-title{display:flex;align-items:center;gap:8px;padding:0 3px;font-size:11px;font-weight:650;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+    .phone-chat .p-title .orb{width:16px;height:16px;box-shadow:none}
+    .phone-messages{display:flex;flex-direction:column;gap:12px}
+    .phone-messages .msg.ai .text{font-size:13.5px}
+    .phone-messages .msg.user .text{font-size:13.5px}
+    .phone-messages .qcard{padding:13px;box-shadow:none;background:var(--surface-2);border-color:transparent}
+    .phone-messages .qcard::before{display:none}
+    .phone-messages .chip{height:36px;padding:0 13px;font-size:13px}
+    .phone-messages .qcustom input{font-size:16px}
+    .phone-messages .updates{margin-left:0}
+    .phone-messages .update{font-size:11.5px}
+    .phone-messages .photo-thumb{width:78px;height:78px}
+
+    .phone-activity{
+      flex:0 0 auto;display:none;align-items:center;gap:9px;
+      padding:10px 14px;border-radius:14px;
+      background:linear-gradient(120deg,#fff,#F3F6FF 50%,#fff);
+      background-size:220% 100%;animation:shimmerBg 3.4s linear infinite;
+      border:1px solid var(--line-2);font-size:12px;color:var(--ink-2);
+    }
+    .phone-activity.on{display:flex}
+    .phone-activity .orb{width:18px;height:18px;box-shadow:none}
+    .phone-activity span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .phone-composer{
+      flex:0 0 auto;display:flex;align-items:flex-end;gap:7px;
+      background:#fff;border:1px solid var(--line);border-radius:21px;
+      padding:7px 7px 7px 8px;box-shadow:0 10px 28px rgba(14,15,18,.09);
+      transition:box-shadow .2s,border-color .2s;
+    }
+    .phone-composer:focus-within{border-color:rgba(10,108,255,.4);box-shadow:0 0 0 4px rgba(10,108,255,.08),0 10px 28px rgba(14,15,18,.09)}
+    .phone-composer textarea{
+      flex:1;min-height:26px;max-height:96px;border:0;outline:none;background:transparent;
+      resize:none;font-size:16px;line-height:1.4;padding:6px 2px;
+    }
+    .phone-composer .tool-btn{width:34px;height:34px}
+    .phone-composer .send-btn{width:36px;height:36px;border-radius:12px}
+    .phone-composer .send-btn:disabled{opacity:.28}
+
+    .ph-view{
+      position:fixed;inset:0;z-index:200;background:rgba(10,11,14,.94);
+      display:none;align-items:center;justify-content:center;padding:18px;
+      backdrop-filter:blur(10px);
+    }
+    .ph-view.on{display:flex}
+    .ph-view img{max-width:100%;max-height:86%;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+    .ph-view .x{
+      position:absolute;top:calc(env(safe-area-inset-top) + 14px);right:16px;
+      width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;
+      display:grid;place-items:center;backdrop-filter:blur(10px);
+    }
+    .ph-view .x svg{width:18px;height:18px}
+
+    .phone-err{
+      margin:auto;max-width:340px;text-align:center;
+      background:#fff;border-radius:26px;padding:30px 24px;
+      border:1px solid var(--line);box-shadow:var(--shadow-2);
+    }
+    .phone-err h1{font-size:18px;margin:14px 0 6px}
+    .phone-err p{font-size:13px;color:var(--muted);line-height:1.55;margin:0}
+  </style>
+</head>
+<body>
+
+<div class="phone" id="phone" style="display:none">
+  <header class="phone-top">
+    <div class="brand-mark">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M9.5 21v-6h5v6"/></svg>
+    </div>
+    <div class="t">
+      <b>Emlak Yardımcısı</b>
+      <span id="phoneDocTitle">Kira sözleşmesi</span>
+    </div>
+    <div class="dotwrap" id="phoneStatus"><i></i><span>Bağlanıyor</span></div>
+  </header>
+
+  <main class="phone-scroll" id="phoneScroll">
+    <section class="upload-card">
+      <h2>Belge fotoğrafları</h2>
+      <p>Kimlik, tapu, sözleşme veya WhatsApp ekran görüntüsü gönderebilirsiniz.</p>
+      <div class="upload-actions">
+        <button class="up-btn cam" id="btnCam">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.4-2h7.2L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.4"/></svg>
+          Fotoğraf çek
+        </button>
+        <button class="up-btn gal" id="btnGal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 4.8-4.5a2 2 0 0 1 2.7 0L20 20"/></svg>
+          Galeriden seç
+        </button>
+      </div>
+      <div class="phone-photos" id="phonePhotos"></div>
+    </section>
+
+    <section class="phone-chat">
+      <div class="p-title"><div class="orb"></div>Asistandan gelenler</div>
+      <div class="phone-messages" id="phoneMessages"></div>
+    </section>
+  </main>
+
+  <div class="phone-activity" id="phoneActivity"><div class="orb"></div><span>Düşünüyor…</span><span class="dots"><i></i><i></i><i></i></span></div>
+
+  <div class="phone-composer">
+    <button class="tool-btn" id="btnPhoneAttach" title="Fotoğraf ekle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <textarea id="phoneInput" rows="1" placeholder="Asistana yazın…"></textarea>
+    <button class="send-btn" id="btnPhoneSend" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="phone-err" id="phoneError" style="display:none">
+  <div class="brand-mark" style="margin:0 auto;width:46px;height:46px;border-radius:15px">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>
+  </div>
+  <h1 id="phoneErrTitle">Bağlantı bulunamadı</h1>
+  <p id="phoneErrText">Masaüstündeki kare kodu tekrar okutun.</p>
+</div>
+
+<div class="ph-view" id="phView">
+  <button class="x" id="phViewClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <img id="phViewImg" alt="" />
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<input type="file" id="camInput" accept="image/*" capture="environment" class="hidden" />
+<input type="file" id="galInput" accept="image/*" multiple class="hidden" />
+
+<script src="assets/config.js?v=20261119u"></script>
+<script src="assets/contract.js?v=20261119u"></script>
+<script src="assets/render.js?v=20261119u"></script>
+<script src="assets/session.js?v=20261119u"></script>
+<script src="assets/phone.js?v=20261119u"></script>
+</body>
+</html>
