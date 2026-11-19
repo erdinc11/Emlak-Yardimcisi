@@ -1504,3 +1504,15 @@ body::after{
   .top-actions .btn span.lbl{font-size:10.5px}
   .top-actions .btn{padding:0 9px}
 }
+
+/* belge tuvali: kağıdı öne çıkaran yumuşak gri zemin */
+.doc-pane{
+  background:linear-gradient(180deg,#F4F5F8 0%,#EDEFF4 100%) !important;
+}
+.doc-top{
+  background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.45)) !important;
+  border-bottom:1px solid rgba(255,255,255,.7);
+}
+.doc-scroll{
+  background:radial-gradient(720px 340px at 50% 0%, rgba(255,255,255,.9), rgba(255,255,255,0) 70%);
+}
