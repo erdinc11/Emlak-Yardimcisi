@@ -65,6 +65,7 @@ ARAÇLAR
     guarantor2Name: 'text', guarantor2Tckn: 'tckn', guarantor2Phone: 'phone',
     leaseStart: 'date', commitmentDate: 'date',
     durationValue: 'int', durationUnit: 'enum:year|month',
+    landlord2Enabled: 'bool', tenant2Enabled: 'bool', guarantor2Enabled: 'bool',
     monthlyRent: 'money', depositManual: 'money', depositOneRent: 'bool',
     daskPolicyNo: 'text', paymentDayFrom: 'int', paymentDayTo: 'int',
     iban: 'iban', demirbaslar: 'text', propertyType: 'text',
@@ -713,6 +714,7 @@ Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN
         const updates = [];
         for (const [key, raw] of Object.entries(args.fields || {})) {
           if (!(key in C.defaults)) continue;
+          if (key === 'customClauses' || key === 'clauseOverrides') continue;
           const value = normalizeValue(key, raw);
           if (value === '' || value === null) continue;
           this.doc[key] = value;
