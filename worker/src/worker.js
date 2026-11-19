@@ -219,7 +219,9 @@ export class Store {
     if (isDoc && request.method === 'GET' && parts[3] === 'photo') {
       const row = this.sql.exec('SELECT mime, data FROM photos WHERE id=? AND doc_id=?', parts[4], sid).toArray()[0] || null;
       if (!row) return new Response('not found', { status: 404 });
-      const bin = Uint8Array.from(atob(row.data), c => c.charCodeAt(0));
+      const raw = String(row.data || '');
+      const b64 = raw.includes(',') ? raw.split(',').pop() : raw;
+      const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       return new Response(bin, {
         headers: { 'Content-Type': row.mime || 'image/jpeg', 'Cache-Control': 'private, max-age=31536000' }
       });
@@ -332,7 +334,9 @@ export class Store {
       const p = body.photo;
       this.sql.exec(
         'INSERT OR REPLACE INTO photos (id, doc_id, name, mime, status, data, origin, created) VALUES (?,?,?,?,?,?,?,?)',
-        p.id, sid, p.name || 'foto.jpg', p.mime || 'image/jpeg', p.status || 'processing', p.data || '', p.origin || '', t
+        p.id, sid, p.name || 'foto.jpg', p.mime || 'image/jpeg', p.status || 'processing',
+        String(p.data || '').includes(',') ? String(p.data).split(',').pop() : (p.data || ''),
+        p.origin || '', t
       );
       this.broadcast(sid, { type: 'photo', photo: { id: p.id, name: p.name, status: p.status, origin: p.origin || '', created: t } });
       return { ok: true };

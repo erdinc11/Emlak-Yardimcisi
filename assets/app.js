@@ -19,12 +19,8 @@
   let activityEl = null;
   let activityTimer = null;
   let lastActivity = null;
-  let phoneTimer = null;
-  let pendingPhotos = [];
   let historyOpen = false;
   let qrBuilt = false;
-  const localPhotoIds = new Set();
-  let uploadingLocal = false;
 
   const msgEls = new Map();
 
@@ -183,13 +179,9 @@
         }
         break;
       }
-      case 'photo': {
+      case 'photo':
         syncPhotoThumbs();
-        if (ev.photo && ev.photo.status === 'new' && session.role === 'desktop' && ev.photo.origin === 'phone') {
-          schedulePhoneTurn(ev.photo.id);
-        }
         break;
-      }
       case 'photoStatus':
         syncPhotoThumbs();
         break;
@@ -575,10 +567,7 @@
     for (const f of list) {
       if (!f.type.startsWith('image/')) continue;
       try {
-        uploadingLocal = true;
         const id = await session.addPhoto(f);
-        localPhotoIds.add(id);
-        uploadingLocal = false;
         const preview = session.dataCache.get(id) || session.photoUrl(id);
         attachments.push({ id, preview });
       } catch (e) {
@@ -588,24 +577,6 @@
     renderAttachments();
     updateComposer();
     if (list.length) toast(`${list.length} fotoğraf eklendi`);
-  }
-
-  function schedulePhoneTurn(photoId) {
-    pendingPhotos.push(photoId);
-    clearTimeout(phoneTimer);
-    phoneTimer = setTimeout(async function attempt() {
-      if (!session) return;
-      if (session.busy || session.remoteBusy) {
-        phoneTimer = setTimeout(attempt, 1800);
-        return;
-      }
-      const ids = pendingPhotos.slice();
-      pendingPhotos = [];
-      if (!ids.length) return;
-      try {
-        await session.send({ text: 'Telefondan fotoğraf gönderdim.', photoIds: ids });
-      } catch (e) {}
-    }, 1400);
   }
 
   /* ------------------------------ dışa aktarma ------------------------------ */

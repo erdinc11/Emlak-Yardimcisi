@@ -253,8 +253,8 @@
     clearTimeout(timer);
     timer = setTimeout(function attempt() {
       if (!session) return;
-      if (session.busy || session.remoteBusy) {
-        timer = setTimeout(attempt, 1600);
+      if (session.busy) {
+        timer = setTimeout(attempt, 1200);
         return;
       }
       const ready = incoming.filter(id => {
@@ -264,7 +264,7 @@
       incoming = [];
       if (!ready.length) return;
       session.send({ text: 'Telefondan fotoğraf gönderdim.', photoIds: ready }).catch(() => {});
-    }, 3200);
+    }, 650);
   }
 
   /* ------------------------------ etkinlik ------------------------------ */
