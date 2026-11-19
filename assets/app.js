@@ -617,6 +617,7 @@
     const body = $('exportBody');
     const foot = $('exportFoot');
 
+    buildPrintRoot();
     $('exportTitle').textContent = missing.length ? 'Birkaç alan eksik' : 'Belge hazır';
     $('exportSub').textContent = C.fileNameBase(s);
 
@@ -675,11 +676,15 @@
     } catch (e) {}
   }
 
-  async function printDoc(anyway) {
-    await saveHistory();
+  function buildPrintRoot() {
     const s = state();
-    const root = $('printRoot');
-    root.innerHTML = [C.page1(s), C.page2(s), C.page3(s), C.page4(s)].join('');
+    $('printRoot').innerHTML = [C.page1(s), C.page2(s), C.page3(s), C.page4(s)].join('');
+  }
+
+  function printDoc(anyway) {
+    const s = state();
+    buildPrintRoot();
+    saveHistory();
 
     const oldTitle = document.title;
     document.title = C.fileNameBase(s);
@@ -690,8 +695,8 @@
       window.removeEventListener('afterprint', restore);
     };
     window.addEventListener('afterprint', restore);
-    setTimeout(() => window.print(), 260);
-    setTimeout(restore, 4000);
+    window.print();
+    setTimeout(restore, 5000);
   }
 
   /* ------------------------------ geçmiş ------------------------------ */
