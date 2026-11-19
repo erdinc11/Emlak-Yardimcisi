@@ -595,6 +595,12 @@ ARAÇLAR
 
     buildSystemPrompt() {
       const s = this.state;
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const trDate = d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const trTime = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul');
       const filled = [];
       const empty = [];
       for (const g of C.GROUPS) {
@@ -612,6 +618,13 @@ ARAÇLAR
       const photoList = this.photos.map((p, i) => `#${i + 1} ${p.name} [${p.status}]`).join(', ');
 
       return `${SYSTEM_BASE}
+
+BUGÜNÜN TARİHİ
+- Bugün ${trDate}. ISO tarihi: ${iso}. Saat: ${trTime} (${tz}).
+- "Bugün", "yarın", "gelecek hafta", "bu ay" gibi ifadeleri bu tarihe göre hesapla.
+- Bugünün tarihini kullanıcıya ASLA sorma; burada yazıyor.
+- Kullanıcı "taahhüt tarihi bugün olsun", "başlangıç bugün" gibi bir şey derse ${iso} tarihini kullan.
+- Tarih alanı boşsa ve kullanıcı bir tarih söylemediyse kendi kendine tarih uydurma; kısa bir onay sorusu sor (ör. "Taahhüt tarihi bugün, ${iso} olsun mu?").
 
 BELGE DURUMU (canlı)
 - Başlık: ${this.title || 'Yeni kira sözleşmesi'}
