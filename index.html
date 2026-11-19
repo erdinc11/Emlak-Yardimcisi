@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <meta name="theme-color" content="#F5F5F7" />
   <title>Emlak Yardımcısı</title>
-  <link rel="stylesheet" href="assets/styles.css?v=20261119z" />
+  <link rel="stylesheet" href="assets/styles.css?v=20261120b" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230E0F12'/%3E%3Cpath d='M17 31.5 32 19l15 12.5V46a2 2 0 0 1-2 2h-8V36h-10v12h-8a2 2 0 0 1-2-2z' fill='white'/%3E%3C/svg%3E" />
 </head>
 <body>
@@ -56,6 +56,10 @@
       <button class="btn ghost" id="btnPhone" title="Telefondan fotoğraf yükle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.5 18.5h3"/></svg>
         <span class="lbl">Telefon</span>
+      </button>
+      <button class="btn ghost" id="btnClear" title="Sohbeti ve belgeyi temizle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+        <span class="lbl">Temizle</span>
       </button>
       <button class="btn primary" id="btnExport">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
@@ -237,19 +241,23 @@
 <div class="sheet center" id="newDocSheet" aria-hidden="true">
   <div class="sheet-head">
     <div>
-      <h2>Yeni belge başlatılsın mı?</h2>
-      <p>Mevcut çalışmanız geçmişe kaydedilmez</p>
+      <h2>Sohbet ve belge sıfırlansın mı?</h2>
+      <p>Bu işlem geri alınamaz</p>
     </div>
   </div>
   <div class="sheet-body">
     <p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-2)">
-      Şu anki sözleşme kapanacak ve boş bir belgeyle baştan başlanacak.
-      Önce <b>PDF indir</b> ile kaydetmenizi öneririz.
+      Sohbet, yüklenen fotoğraflar ve belgedeki tüm bilgiler silinir.
+      Geçmiş sekmesindeki kayıtlı belgeler korunur. Önce <b>PDF indir</b> ile
+      kaydetmenizi öneririz.
     </p>
   </div>
   <div class="sheet-foot">
     <button class="btn ghost" data-close="newDocSheet" style="flex:1">Vazgeç</button>
-    <button class="btn primary" id="btnConfirmNew" style="flex:1">Yeni belge</button>
+    <button class="btn danger" id="btnConfirmNew" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/></svg>
+      Temizle
+    </button>
   </div>
 </div>
 
@@ -259,11 +267,11 @@
 <input type="file" id="fileInput" accept="image/*" multiple class="hidden" />
 <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" />
 
-<script src="assets/config.js?v=20261119z"></script>
-<script src="assets/contract.js?v=20261119z"></script>
-<script src="assets/qrcode.js?v=20261119z"></script>
-<script src="assets/render.js?v=20261119z"></script>
-<script src="assets/session.js?v=20261119z"></script>
-<script src="assets/app.js?v=20261119z"></script>
+<script src="assets/config.js?v=20261120b"></script>
+<script src="assets/contract.js?v=20261120b"></script>
+<script src="assets/qrcode.js?v=20261120b"></script>
+<script src="assets/render.js?v=20261120b"></script>
+<script src="assets/session.js?v=20261120b"></script>
+<script src="assets/app.js?v=20261120b"></script>
 </body>
 </html>

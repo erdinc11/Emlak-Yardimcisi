@@ -106,6 +106,15 @@
         renderPhotos();
         updateSend();
         break;
+      case 'reset':
+        msgEls.clear();
+        $('phoneMessages').innerHTML = '';
+        lastActivity = null;
+        $('phoneActivity').classList.remove('on');
+        renderMessages();
+        renderPhotos();
+        $('phoneDocTitle').textContent = C.fileNameBase(session.state);
+        break;
       case 'error':
         toast('Asistana ulaşılamadı, tekrar deneyin.');
         break;

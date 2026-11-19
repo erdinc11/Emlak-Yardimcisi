@@ -366,6 +366,14 @@ export class Store {
       return { ok: true };
     }
 
+    if (op === 'reset') {
+      this.sql.exec('DELETE FROM msgs WHERE doc_id=?', sid);
+      this.sql.exec('DELETE FROM photos WHERE doc_id=?', sid);
+      this.sql.exec('DELETE FROM docs WHERE id=?', sid);
+      this.broadcast(sid, { type: 'reset' });
+      return { ok: true };
+    }
+
     return { ok: false };
   }
 

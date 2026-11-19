@@ -135,6 +135,22 @@
     } catch (e) {}
   }
 
+  async function resetAll() {
+    if (!session) return;
+    if (session.busy || session.remoteBusy) {
+      closeSheets();
+      toast('Asistan şu an çalışıyor, bitmesini bekleyin', true);
+      return;
+    }
+    closeSheets();
+    try {
+      await session.reset();
+      toast('Sohbet ve belge temizlendi');
+    } catch (e) {
+      toast('Temizlenemedi, tekrar deneyin', true);
+    }
+  }
+
   async function openSessionWith(snapshot) {
     if (session) session.destroy();
     sid = newSid();
@@ -208,6 +224,18 @@
       case 'turnEnd':
         updateLive(); updateTop(); renderDoc();
         break;
+      case 'reset': {
+        clearInterval(activityTimer);
+        activityEl = null; lastActivity = null;
+        msgEls.clear();
+        $('messages').innerHTML = '';
+        refs = []; attachments = [];
+        renderRefs(); renderAttachments();
+        renderDoc(); renderMessages(); updateComposer(); updateTop();
+        $('livePill').classList.remove('working');
+        $('livePill').querySelector('span').textContent = 'Hazır';
+        break;
+      }
       default:
         break;
     }
@@ -928,10 +956,8 @@
       closeSheets();
       openSheet('newDocSheet');
     });
-    $('btnConfirmNew').addEventListener('click', async () => {
-      closeSheets();
-      await openSessionWith(C.defaults);
-    });
+    $('btnClear').addEventListener('click', () => openSheet('newDocSheet'));
+    $('btnConfirmNew').addEventListener('click', resetAll);
 
     document.querySelectorAll('#mobileTabs button').forEach(b => {
       b.addEventListener('click', () => {

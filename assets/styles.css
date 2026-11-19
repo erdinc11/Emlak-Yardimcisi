@@ -1516,3 +1516,26 @@ body::after{
 .doc-scroll{
   background:radial-gradient(720px 340px at 50% 0%, rgba(255,255,255,.9), rgba(255,255,255,0) 70%);
 }
+
+/* tehlike / temizle */
+.btn.danger{
+  background:rgba(217,45,32,.07);
+  border-color:rgba(255,255,255,.65);
+  color:#C0281C;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
+}
+.btn.danger:hover{background:rgba(217,45,32,.13)}
+@media (max-width:980px){
+  #btnClear{width:40px;padding:0;justify-content:center}
+  #btnClear span.lbl{display:none}
+  .top-actions .btn{padding:0 11px}
+}
+@media (max-width:380px){
+  .brand-mark{display:none}
+}
+
+@media (max-width:980px){
+  .brand{display:none}
+  .top-actions{margin-left:0;width:100%;justify-content:space-between;gap:5px}
+  .top-actions .btn{flex:0 0 auto}
+}

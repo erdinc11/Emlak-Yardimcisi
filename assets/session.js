@@ -394,6 +394,14 @@ ARAÇLAR
           this.remoteBusy = !!m.activity;
           this.emit({ type: 'activity', activity: m.activity });
           break;
+        case 'reset':
+          this.doc = { ...JSON.parse(JSON.stringify(C.defaults)), createdAt: now(), updatedAt: now() };
+          this.title = 'Kira Sözleşmesi';
+          this.messages = [];
+          this.photos = [];
+          this.dataCache.clear();
+          this.emit({ type: 'reset' });
+          break;
         default:
           break;
       }
@@ -473,6 +481,19 @@ ARAÇLAR
     }
 
     /* -------- mesajlar -------- */
+
+    async reset() {
+      if (this.busy || this.remoteBusy) throw new Error('busy');
+      await this.post({ op: 'reset' });
+      this.doc = { ...JSON.parse(JSON.stringify(C.defaults)), createdAt: now(), updatedAt: now() };
+      this.title = 'Kira Sözleşmesi';
+      this.messages = [];
+      this.photos = [];
+      this.dataCache.clear();
+      this.streamMsgId = null;
+      this.emit({ type: 'reset' });
+      await this.persistDoc();
+    }
 
     async addMessage(msg, persist = true) {
       if (!this.messages.some(x => x.id === msg.id)) this.messages.push(msg);
