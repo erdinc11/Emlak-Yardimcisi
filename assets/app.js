@@ -895,6 +895,11 @@
       b.addEventListener('click', closeSheets);
     });
 
+    $('messages').addEventListener('click', e => {
+      const t = e.target.closest('.photo-thumb');
+      if (t && session) window.open(session.photoUrl(t.dataset.photo), '_blank', 'noopener');
+    });
+
     $('preview').addEventListener('click', e => {
       let el = e.target.closest('.u');
       if (!el) {

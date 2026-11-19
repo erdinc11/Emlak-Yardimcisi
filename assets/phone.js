@@ -253,7 +253,7 @@
     clearTimeout(timer);
     timer = setTimeout(function attempt() {
       if (!session) return;
-      if (session.busy) {
+      if (session.busy || session.remoteBusy) {
         timer = setTimeout(attempt, 1200);
         return;
       }
