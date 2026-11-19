@@ -138,7 +138,10 @@
       if (card && !m.answered) {
         Chat.wireQuestionCard(card, m, answers => {
           session.submitAnswers(m.id, answers).catch(() => toast('Gönderilemedi'));
-        }, () => toast('Tüm soruları yanıtlayın'));
+        }, () => toast('Tüm soruları yanıtlayın'), () => {
+          session.patchMessage(m.id, { closed: true }).catch(() => {});
+          toast('Sorular atlandı');
+        });
       }
     } else if (m.kind === 'updates') {
       holder.innerHTML = Chat.messageHTML(m, { photoUrl: id => session.photoUrl(id) });
@@ -172,7 +175,10 @@
       if (card && !m.answered) {
         Chat.wireQuestionCard(card, m, answers => {
           session.submitAnswers(m.id, answers).catch(() => toast('Gönderilemedi'));
-        }, () => toast('Tüm soruları yanıtlayın'));
+        }, () => toast('Tüm soruları yanıtlayın'), () => {
+          session.patchMessage(m.id, { closed: true }).catch(() => {});
+          toast('Sorular atlandı');
+        });
       }
       old.replaceWith(holder);
       msgEls.set(m.id, holder);

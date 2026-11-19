@@ -1539,3 +1539,29 @@ body::after{
   .top-actions{margin-left:0;width:100%;justify-content:space-between;gap:5px}
   .top-actions .btn{flex:0 0 auto}
 }
+
+/* tıklanabilir maddeler */
+.page [data-ref-clause]{
+  cursor:pointer;border-radius:6px;
+  transition:background-color .12s ease, box-shadow .12s ease;
+}
+.page [data-ref-clause]:hover{
+  background:rgba(10,132,255,.07);
+  box-shadow:0 0 0 2px rgba(10,132,255,.10);
+}
+
+/* soru atlama */
+.qfoot .qskip{background:transparent;color:var(--muted);box-shadow:none;padding:0 8px}
+.qfoot .qskip:hover{background:var(--surface-2);color:var(--ink)}
+.qskipall-row{display:flex;justify-content:flex-end;margin:-3px 0 -3px}
+.qskipall{
+  font-size:10.5px;color:var(--faint);padding:2px 0;
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(14,15,18,.2);
+  transition:color .15s;
+}
+.qskipall:hover{color:var(--ink-2)}
+.qdots i.done{background:var(--green);width:6px;height:6px}
+.qdots i.skipped{background:transparent;border:1.5px solid rgba(199,119,0,.55);width:6px;height:6px}
+.chip.cash{background:rgba(31,164,99,.09);border-color:rgba(31,164,99,.2);color:#0E7A46}
+.chip.cash:hover{background:rgba(31,164,99,.15)}
+.chip.cash.on{background:#0E7A46;border-color:#0E7A46;color:#fff;box-shadow:0 6px 16px rgba(14,122,70,.22)}

@@ -86,18 +86,27 @@
     const qs = m.questions || [];
     const blocks = qs.map((q, i) => {
       const opts = (q.options || []).filter(o => !/yazacağım|kendim yaz|diğer|^other$/i.test(String(o).trim()));
+      const needsCash = (q.field === 'iban' || q.field === 'paymentMethod' || /iban/i.test(`${q.question} ${q.label}`))
+        && !opts.some(o => /elden|cash|nakit/i.test(String(o)));
+      const cash = needsCash
+        ? '<button type="button" class="chip cash" data-value="Elden ödenecek" data-cash="1">Elden ödenecek</button>'
+        : '';
       return `
       <div class="qblock" data-qid="${esc(q.id)}" data-field="${esc(q.field || '')}" ${i ? 'hidden' : ''}>
         <div class="qlabel">${esc(q.question || q.label)}</div>
         ${q.label && q.label !== q.question ? `<div class="qhint">${esc(q.label)}</div>` : ''}
         <div class="chips">
-          ${opts.map(o => `<button class="chip" data-value="${esc(o)}">${esc(o)}</button>`).join('')}
+          ${opts.map(o => `<button type="button" class="chip" data-value="${esc(o)}">${esc(o)}</button>`).join('')}
+          ${cash}
         </div>
         ${q.allowFreeText !== false ? `<div class="qcustom"><input placeholder="Kendiniz yazın…" autocomplete="off" /></div>` : ''}
       </div>`;
     }).join('');
 
     const dots = qs.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('');
+    const skipAll = qs.length > 1
+      ? `<div class="qskipall-row"><button type="button" class="qskipall">Tüm soruları atla</button></div>`
+      : '';
 
     return `<div class="qcard" data-mid="${esc(m.id)}" data-total="${qs.length}">
       <div class="qhead">
@@ -108,8 +117,10 @@
         <span class="qstep">1 / ${qs.length}</span>
       </div>
       ${blocks}
+      ${skipAll}
       <div class="qfoot">
         <button type="button" class="btn ghost qback" disabled>Geri</button>
+        <button type="button" class="btn ghost qskip">Atla</button>
         <div class="qdots">${dots}</div>
         <button type="button" class="btn primary qnext">${qs.length > 1 ? 'İleri' : 'Gönder'}</button>
       </div>
@@ -158,30 +169,60 @@
     </div>`;
   }
 
-  function wireQuestionCard(card, m, onSubmit, onInvalid) {
+  function wireQuestionCard(card, m, onSubmit, onInvalid, onClose) {
     if (!card || m.answered) return;
     const blocks = [...card.querySelectorAll('.qblock')];
     const back = card.querySelector('.qback');
+    const skip = card.querySelector('.qskip');
     const next = card.querySelector('.qnext');
+    const skipAll = card.querySelector('.qskipall');
     const dots = [...card.querySelectorAll('.qdots i')];
     const step = card.querySelector('.qstep');
     const total = blocks.length;
     let cur = 0;
 
     const answered = b => String(b.dataset.answer || '').trim().length > 0;
+    const anyAnswered = () => blocks.some(answered);
 
     const paint = () => {
       blocks.forEach((b, i) => { b.hidden = i !== cur; });
-      dots.forEach((d, i) => d.classList.toggle('on', i === cur));
+      dots.forEach((d, i) => {
+        d.classList.toggle('on', i === cur);
+        d.classList.toggle('done', i !== cur && answered(blocks[i]));
+        d.classList.toggle('skipped', i !== cur && !answered(blocks[i]) && blocks[i].dataset.skipped === '1');
+      });
       if (step) step.textContent = `${cur + 1} / ${total}`;
       back.disabled = cur === 0;
       const isLast = cur === total - 1;
-      next.innerHTML = isLast ? `${CHECK_SVG} Gönder` : 'İleri';
-      next.disabled = !answered(blocks[cur]) || (isLast && !blocks.every(answered));
+      if (isLast) {
+        next.innerHTML = anyAnswered() ? `${CHECK_SVG} Gönder` : 'Kapat';
+        next.disabled = false;
+      } else {
+        next.innerHTML = 'İleri';
+        next.disabled = !answered(blocks[cur]);
+      }
     };
 
-    const pick = (b, v) => {
+    const finish = () => {
+      if (!anyAnswered()) {
+        if (onClose) onClose();
+        return;
+      }
+      const answers = blocks.filter(answered).map(b => ({
+        id: b.dataset.qid,
+        value: String(b.dataset.answer || '').trim(),
+        field: b.dataset.cash === '1' ? 'paymentMethod' : (b.dataset.field || null),
+        cash: b.dataset.cash === '1'
+      }));
+      next.disabled = true;
+      next.innerHTML = 'Gönderiliyor…';
+      onSubmit(answers);
+    };
+
+    const pick = (b, v, cash) => {
       b.dataset.answer = v;
+      b.dataset.cash = cash ? '1' : '';
+      b.dataset.skipped = '';
       b.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.value === v));
       const input = b.querySelector('.qcustom input');
       if (input && input.value !== v) input.value = '';
@@ -193,10 +234,11 @@
         const b = chip.closest('.qblock');
         if (b.dataset.answer === chip.dataset.value) {
           b.dataset.answer = '';
+          b.dataset.cash = '';
           chip.classList.remove('on');
           paint();
         } else {
-          pick(b, chip.dataset.value);
+          pick(b, chip.dataset.value, chip.dataset.cash === '1');
         }
       });
     });
@@ -205,6 +247,8 @@
       input.addEventListener('input', () => {
         const b = input.closest('.qblock');
         b.dataset.answer = input.value;
+        b.dataset.cash = '';
+        b.dataset.skipped = '';
         b.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
         paint();
       });
@@ -220,18 +264,26 @@
       if (cur > 0) { cur--; paint(); }
     });
 
+    skip.addEventListener('click', () => {
+      blocks[cur].dataset.skipped = '1';
+      if (cur < total - 1) { cur++; paint(); }
+      else finish();
+    });
+
+    if (skipAll) {
+      skipAll.addEventListener('click', () => {
+        if (onClose) onClose();
+      });
+    }
+
     next.addEventListener('click', () => {
       if (next.disabled) return;
       if (cur < total - 1) { cur++; paint(); return; }
-      if (!blocks.every(answered)) return onInvalid && onInvalid();
-      const answers = blocks.map(b => ({
-        id: b.dataset.qid,
-        value: String(b.dataset.answer || '').trim(),
-        field: b.dataset.field || null
-      }));
-      next.disabled = true;
-      next.innerHTML = 'Gönderiliyor…';
-      onSubmit(answers);
+      if (!anyAnswered()) {
+        if (onClose) onClose();
+        return;
+      }
+      finish();
     });
 
     paint();

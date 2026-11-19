@@ -36,6 +36,7 @@ SORU SORMA KURALLARI
 - Önce set_fields ile bildiğin her şeyi yaz. Ancak ondan sonra, gerçekten belirsiz kalan kişi-rol eşleştirmelerini "ask" aracıyla sor.
 - "Bu kimlik kimin?" gibi sorularda seçenekleri kişi rolleri olarak ver: "Kiraya Veren", "Kiracı", "Kefil", "İkinci Kiracı", "İkinci Kiraya Veren", "İkinci Kefil".
 - Kullanıcı isterse kendi cevabını yazabilsin diye allowFreeText true olsun.
+- Kullanıcı soruları atlayabilir. Atlamak isterse "Atla" / "Tüm soruları atla" seçeneğini kullanır; atlanan soruları hemen tekrar sorma. Kullanıcı daha sonra fotoğrafla veya kendi mesajıyla tamamlar.
 - Soru metni çok kısa ve anlaşılır olsun. Örn. "Bu kimlik hangi tarafa ait?".
 - Soruları sorduktan sonra turu bitir; cevap gelince devam et ve cevabı hemen alanlara uygula.
 - Eksik zorunlu alanlar için de tek kartta, en fazla 3 soru sor. Adres gibi birden çok parçayı gereksiz yere tek tek sorma; mümkünse tek soruda topla.
@@ -66,7 +67,7 @@ ARAÇLAR
     leaseStart: 'date', commitmentDate: 'date',
     durationValue: 'int', durationUnit: 'enum:year|month',
     landlord2Enabled: 'bool', tenant2Enabled: 'bool', guarantor2Enabled: 'bool',
-    monthlyRent: 'money', depositManual: 'money', depositOneRent: 'bool',
+    monthlyRent: 'money', paymentMethod: 'enum:iban|cash', depositManual: 'money', depositOneRent: 'bool',
     daskPolicyNo: 'text', paymentDayFrom: 'int', paymentDayTo: 'int',
     iban: 'iban', demirbaslar: 'text', propertyType: 'text',
     durationText: 'text', propertyCondition: 'text'
@@ -137,11 +138,12 @@ ARAÇLAR
       type: 'function',
       function: {
         name: 'edit_clause',
-        description: 'Numaralı bir maddenin metnini değiştirir.',
+        description: 'Numaralı bir maddenin metnini değiştirir. Genel Koşullar 1-10 için section=general, sözleşme maddeleri 11-24 için section=contract kullan.',
         parameters: {
           type: 'object',
           properties: {
-            no: { type: 'integer', description: 'Madde numarası (11-24)' },
+            no: { type: 'integer', description: 'Madde numarası (genel: 1-10, sözleşme: 11-24)' },
+            section: { type: 'string', enum: ['contract', 'general'], description: 'Maddenin bulunduğu bölüm' },
             text: { type: 'string', description: 'Yeni metin' }
           },
           required: ['no', 'text']
@@ -155,7 +157,10 @@ ARAÇLAR
         description: 'Değiştirilmiş bir maddeyi özgün metnine döndürür.',
         parameters: {
           type: 'object',
-          properties: { no: { type: 'integer', description: 'Madde numarası' } },
+          properties: {
+            no: { type: 'integer', description: 'Madde numarası' },
+            section: { type: 'string', enum: ['contract', 'general'], description: 'Maddenin bulunduğu bölüm' }
+          },
           required: ['no']
         }
       }
@@ -204,6 +209,7 @@ ARAÇLAR
       return Number.isFinite(n) ? n : 0;
     }
     if (type === 'iban') return String(value).replace(/\s+/g, '').toUpperCase();
+    if (key === 'paymentMethod') return /cash|elden|nakit/i.test(String(value)) ? 'cash' : 'iban';
     if (type === 'enum:year|month') return /month|ay/i.test(String(value)) ? 'month' : 'year';
     return String(value);
   }
@@ -532,10 +538,24 @@ ARAÇLAR
       const card = this.messages.find(x => x.id === messageId);
       if (!card || card.kind !== 'question' || card.answered) return;
 
-      const summary = answers.map(a => {
+      if (!answers.length) return;
+      const cash = answers.some(a => a.cash || (
+        /elden|nakit/i.test(String(a.value)) &&
+        (a.field === 'iban' || a.field === 'paymentMethod' || /iban|ödeme/i.test(String(a.value)))
+      ));
+      if (cash) {
+        this.doc.paymentMethod = 'cash';
+        await this.persistDoc();
+      }
+
+      const skipped = (card.questions || []).filter(q => !answers.some(a => a.id === q.id));
+      let summary = answers.map(a => {
         const q = (card.questions || []).find(x => x.id === a.id);
         return `${q ? q.label : a.id}: ${a.value}`;
       }).join('\n');
+      if (skipped.length) {
+        summary += `\n(Atlanan sorular: ${skipped.map(q => q.label).join(', ')} — bunları şimdilik tekrar sorma; kullanıcı daha sonra fotoğrafla tamamlayabilir.)`;
+      }
 
       const msg = {
         id: uid(),
@@ -605,6 +625,7 @@ ARAÇLAR
       const empty = [];
       for (const g of C.GROUPS) {
         for (const key of g.keys) {
+          if (key === 'iban' && s.paymentMethod === 'cash') continue;
           if (['landlord2Name', 'landlord2Tckn', 'landlord2Phone', 'tenant2Name', 'tenant2Tckn', 'tenant2Phone', 'guarantor2Name', 'guarantor2Tckn', 'guarantor2Phone'].includes(key)) {
             if (!s[key.replace(/2/, '2Enabled')] && !s[key]) continue;
           }
@@ -634,13 +655,20 @@ ${filled.length ? filled.map(x => '  • ' + x).join('\n') : '  • (henüz yok)
 ${empty.length ? empty.map(x => '  • ' + x).join('\n') : '  • (yok)'}
 - Eksik zorunlu alanlar: ${missing.length ? missing.join('; ') : 'yok'}
 - Oturumdaki fotoğraflar: ${photoList || 'yok'}
-- Değiştirilmiş maddeler: ${Object.keys(s.clauseOverrides || {}).join(', ') || 'yok'}
+- Değiştirilmiş maddeler → sözleşme: ${Object.keys(s.clauseOverrides || {}).join(', ') || 'yok'}; genel koşullar: ${Object.keys(s.generalOverrides || {}).join(', ') || 'yok'}
 - Ek maddeler: ${(s.customClauses || []).length}
 
 ALAN LİSTESİ (set_fields için anahtarlar)
 ${C.GROUPS.map(g => `${g.title}: ` + g.keys.map(k => `${k}=${C.LABELS[k]}${FIELD_TYPE[k] ? ' [' + FIELD_TYPE[k] + ']' : ''}`).join(', ')).join('\n')}
 
-Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN TR ile 26 karakter, para alanları sadece rakam olarak gönderilsin.`;
+Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN TR ile 26 karakter, para alanları sadece rakam olarak gönderilsin.
+
+ÖDEME ŞEKLİ
+- Kira "elden" ödenebilir. Kullanıcı elden/nakit/IBAN'sız derse paymentMethod='cash' yap; IBAN sorma ve IBAN'ı zorunlu tutma.
+- IBAN sorarken seçenek metni "Elden ödenecek" olsun (asla "Elden ödeyeceğim" yazma).
+- IBAN verilirse paymentMethod='iban' yap.
+- paymentMethod='cash' iken IBAN boş kalabilir; bu bir eksik değildir.
+- Genel Koşullar 1-10 arası bir maddeyi değiştirmek için edit_clause'ta section='general', sözleşme maddeleri (11-24) için section='contract' kullan.`;
     }
 
     async runTurn(triggerMessage, photoIds) {
@@ -675,6 +703,11 @@ Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN
         let liveMsg = null;
 
         while (rounds++ < 6) {
+          if (rounds > 1 && assistantStarted && pendingText && !/\s$/.test(pendingText)) {
+            pendingText += '\n\n';
+            if (liveMsg) liveMsg.text = pendingText;
+            this.emit({ type: 'stream', id: assistantId, delta: '\n\n' });
+          }
           const result = await this.streamCompletion(convo, (delta) => {
             if (!assistantStarted) {
               assistantStarted = true;
@@ -748,7 +781,7 @@ Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN
         const updates = [];
         for (const [key, raw] of Object.entries(args.fields || {})) {
           if (!(key in C.defaults)) continue;
-          if (key === 'customClauses' || key === 'clauseOverrides') continue;
+          if (key === 'customClauses' || key === 'clauseOverrides' || key === 'generalOverrides') continue;
           const value = normalizeValue(key, raw);
           if (value === '' || value === null) continue;
           this.doc[key] = value;
@@ -807,13 +840,17 @@ Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN
       if (call.function.name === 'edit_clause' || call.function.name === 'reset_clause') {
         const no = Number(args.no);
         if (!no) return { ok: false, error: 'madde numarası gerekli' };
-        this.doc.clauseOverrides = { ...(this.doc.clauseOverrides || {}) };
-        if (call.function.name === 'reset_clause') delete this.doc.clauseOverrides[String(no)];
-        else this.doc.clauseOverrides[String(no)] = String(args.text || '');
+        const section = args.section === 'general' ? 'general' : 'contract';
+        if (section === 'general' && (no < 1 || no > 10)) return { ok: false, error: 'genel koşullar 1-10 arası' };
+        const mapKey = section === 'general' ? 'generalOverrides' : 'clauseOverrides';
+        this.doc[mapKey] = { ...(this.doc[mapKey] || {}) };
+        if (call.function.name === 'reset_clause') delete this.doc[mapKey][String(no)];
+        else this.doc[mapKey][String(no)] = String(args.text || '');
         await this.persistDoc();
+        const label = section === 'general' ? `Genel Koşullar ${no}. madde` : `${no}. madde`;
         await this.addMessage({
           id: uid(), role: 'assistant', kind: 'updates',
-          items: [{ key: 'clauseOverrides', label: `${no}. madde`, value: call.function.name === 'reset_clause' ? 'özgün haline döndürüldü' : String(args.text || '').slice(0, 90) }],
+          items: [{ key: mapKey, label, value: call.function.name === 'reset_clause' ? 'özgün haline döndürüldü' : String(args.text || '').slice(0, 90) }],
           at: now()
         });
         return { ok: true };
@@ -895,6 +932,7 @@ Tarih alanları YYYY-AA-GG formatında, T.C. 11 rakam, telefon 10/11 rakam, IBAN
     if (key === 'leaseStart' || key === 'commitmentDate') return C.formatDate(v);
     if (key === 'monthlyRent' || key === 'depositManual') return C.money(v) + ' TL';
     if (key === 'durationUnit') return v === 'month' ? 'ay' : 'yıl';
+    if (key === 'paymentMethod') return v === 'cash' ? 'Elden nakit' : 'IBAN';
     if (key === 'durationValue') return String(v);
     if (key === 'iban') return String(v);
     if (key === 'tenantBusinessAddress' || key === 'demirbaslar' || key === 'propertyCondition') return String(v).replace(/\s+/g, ' ').slice(0, 90);

@@ -346,7 +346,10 @@
       el.dataset.mid = m.id;
       Chat.wireQuestionCard(el, m, answers => {
         session.submitAnswers(m.id, answers).catch(() => toast('Gönderilemedi', true));
-      }, () => toast('Lütfen tüm soruları yanıtlayın'));
+      }, () => toast('Lütfen tüm soruları yanıtlayın'), () => {
+        session.patchMessage(m.id, { closed: true }).catch(() => {});
+        toast('Sorular atlandı');
+      });
       msgEls.set(m.id, holder);
       $('messages').appendChild(holder);
       setTimeout(() => scrollToEl(holder), 90);
@@ -384,7 +387,10 @@
       if (card && !m.answered) {
         Chat.wireQuestionCard(card, m, answers => {
           session.submitAnswers(m.id, answers).catch(() => toast('Gönderilemedi', true));
-        }, () => toast('Lütfen tüm soruları yanıtlayın'));
+        }, () => toast('Lütfen tüm soruları yanıtlayın'), () => {
+          session.patchMessage(m.id, { closed: true }).catch(() => {});
+          toast('Sorular atlandı');
+        });
       }
       old.replaceWith(holder);
       msgEls.set(m.id, holder);
@@ -837,8 +843,10 @@
       });
       if (!keys.length) return '';
       return `<div class="field-group"><h4>${g.title}</h4><div class="field-list">${keys.map(k => {
-        const val = String(s[k] ?? '');
-        const empty = C.isBlank(val);
+        const val = k === 'paymentMethod'
+          ? (s[k] === 'cash' ? 'Elden nakit' : 'IBAN')
+          : String(s[k] ?? '');
+        const empty = false;
         return `<button class="field-item" data-key="${esc(k)}" data-label="${esc(C.LABELS[k] || k)}">
           ${empty ? '<span class="missing-dot"></span>' : ''}
           <span class="fl"><b>${esc(C.LABELS[k] || k)}</b><span>${empty ? 'Boş' : esc(val.slice(0, 80))}</span></span>
@@ -937,10 +945,16 @@
           if (inner) el = inner;
         }
       }
-      if (!el) return;
-      const key = el.dataset.key;
-      const label = el.dataset.label || C.LABELS[key] || key;
-      addRef(key, label);
+      if (el) {
+        const key = el.dataset.key;
+        const label = el.dataset.label || C.LABELS[key] || key;
+        addRef(key, label);
+        return;
+      }
+      const clause = e.target.closest('[data-ref-clause]');
+      if (clause) {
+        addRef('clause:' + clause.dataset.refClause, clause.dataset.refLabel || 'Madde');
+      }
     });
 
     $('pickerSearch').addEventListener('input', renderPicker);
