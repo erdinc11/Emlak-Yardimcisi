@@ -183,7 +183,8 @@
     if (opts.multiline) inner = inner.replace(/\n/g, '<br>');
     const empty = inner === '';
     if (empty) inner = '&nbsp;';
-    return `<span class="u${empty ? ' is-empty' : ''}" data-key="${esc(key)}" data-label="${esc(label)}">${inner}</span>`;
+    const prefix = opts.prefix ? `<strong class="u-label">${esc(opts.prefix)}</strong> ` : '';
+    return `<span class="u${empty ? ' is-empty' : ''}" data-key="${esc(key)}" data-label="${esc(label)}">${prefix}${inner}</span>`;
   }
 
   function normalizePhoneDigits(v) {
@@ -217,18 +218,18 @@
 
   function identitySpans(state, prefix, name, tckn, phone) {
     const parts = [];
-    if (!isBlank(name)) parts.push(u(state, prefix + 'Name', name));
-    if (!isBlank(tckn)) parts.push(u(state, prefix + 'Tckn', tckn, { prefix: 'TC:' }));
-    if (!isBlank(phone)) parts.push(u(state, prefix + 'Phone', phoneFormat(phone), { prefix: 'TEL: ' }));
+    if (!isBlank(name)) parts.push(u(state, prefix + 'Name', name, { prefix: 'Adı Soyadı:' }));
+    if (!isBlank(tckn)) parts.push(u(state, prefix + 'Tckn', tckn, { prefix: 'T.C. No:' }));
+    if (!isBlank(phone)) parts.push(u(state, prefix + 'Phone', phoneFormat(phone), { prefix: 'Telefon:' }));
     return parts;
   }
 
   function partiesInline(state, primary, secondary, secondaryEnabled) {
-    const groups = [identitySpans(state, primary.prefix, primary.name, primary.tckn, primary.phone)];
-    if (secondaryEnabled) groups.push(identitySpans(state, secondary.prefix, secondary.name, secondary.tckn, secondary.phone));
-    const filled = groups.filter(g => g.length > 0);
+    const groups = [{ label: '', parts: identitySpans(state, primary.prefix, primary.name, primary.tckn, primary.phone) }];
+    if (secondaryEnabled) groups.push({ label: 'İkinci kişi: ', parts: identitySpans(state, secondary.prefix, secondary.name, secondary.tckn, secondary.phone) });
+    const filled = groups.filter(g => g.parts.length > 0);
     if (!filled.length) return u(state, primary.prefix + 'Name', '');
-    return filled.map(g => g.join(' ')).join(' &nbsp;&nbsp; ');
+    return filled.map(g => `${g.label ? `<strong>${g.label}</strong>` : ''}${g.parts.join(' · ')}`).join(' &nbsp; ');
   }
 
   const landlordInline = s => partiesInline(s,
@@ -349,9 +350,13 @@
   const buildingIdentity = s => [s.buildingNo, s.buildingName].filter(Boolean).join(' ');
   function addressLine(s) {
     return [
-      s.neighborhood, s.street, 'Bina:', buildingIdentity(s),
-      s.apartmentNo ? `Daire: ${s.apartmentNo}` : '',
-      s.district, '/', s.province
+      s.neighborhood ? `Mahalle: ${s.neighborhood}` : '',
+      s.street ? `Cadde/Sokak: ${s.street}` : '',
+      s.buildingNo ? `Bina No: ${s.buildingNo}` : '',
+      s.buildingName ? `Bina Adı: ${s.buildingName}` : '',
+      s.apartmentNo ? `Daire No: ${s.apartmentNo}` : '',
+      s.district ? `İlçe: ${s.district}` : '',
+      s.province ? `İl: ${s.province}` : ''
     ].filter(Boolean).join(' ');
   }
 
@@ -379,8 +384,8 @@
         ${contractRow('Cadde/Sokağı', u(s, 'street', s.street))}
         ${contractRow('Numarası', `${u(s, 'buildingNo', s.buildingNo)} ${u(s, 'buildingName', s.buildingName)}`)}
         ${contractRow('Kiralananın<br>Cinsi', u(s, 'propertyType', s.propertyType), 'mid')}
-        ${contractRow('Kiraya Verenin<br>Adı<br>Soyadı<br>T.C.Kimlik No', landlordInline(s), 'xbig')}
-        ${contractRow('Kiracının Adı<br>Soyadı T.C.NO', tenantInline(s), 'big')}
+        ${contractRow('Kiraya Veren<br>Bilgileri', landlordInline(s), 'xbig')}
+        ${contractRow('Kiracı<br>Bilgileri', tenantInline(s), 'big')}
         ${contractRow('Kiracının İş<br>Adresi', u(s, 'tenantBusinessAddress', s.tenantBusinessAddress, { multiline: true }), 'big')}
         ${contractRow('Kira Başlangıç<br>Tarihi', u(s, 'leaseStart', formatDate(s.leaseStart)), 'mid')}
         ${contractRow('Sözleşmenin<br>Süresi', u(s, 'durationText', effectiveDurationText(s)), 'mid')}
@@ -464,11 +469,11 @@
         ${clause(s, 11, `<b>11.</b> Kira başlangıç tarihi; ${u(s, 'leaseStart', formatDate(s.leaseStart))} ’dir. Kira kontrat süresi ${leaseDurationSentence(s)}. Kira bitiş tarihi : ${formatDate(leaseEndDate(s))}’dır`)}
         ${clause(s, 12, `<b>12.</b> Kira bedeli; PEŞİN ve NET ilk yıl için ( ${monthly ? monthly + ' TL' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TL'} )dir. Müteakip yıllarda kira artışları bir önceki yılın aynı ayına göre belirtilen aynı oranda yıllık TÜFE ortalamasına göre olacaktır. ${s.paymentMethod === 'cash' ? 'İlk aya ait kira bedeli elden ödenmiştir.' : 'İlk aya ait kira bedeli Hesap numarasına aktarılmıştır.'}`)}
         ${clause(s, 13, s.paymentMethod === 'cash'
-          ? `<b>13.</b> Kira bedelleri her ayın ${blank(paymentDays(s))} günleri arasında ${blank(payeeName(s))} adına, ELDEN NAKİT olarak düzenli olarak ödenecektir.`
-          : `<b>13.</b> Kira bedelleri her ayın ${blank(paymentDays(s))} günleri arasında ${blank(payeeName(s))} adına, İBAN ${u(s, 'iban', iban)} hesabına düzenli olarak yatırılacaktır.`)}
+          ? `<b>13.</b> Kira bedelleri her ayın ${blank(paymentDays(s))} günleri arasında ${blank(`Kiraya Veren: ${payeeName(s)}`)} adına, ELDEN NAKİT olarak düzenli olarak ödenecektir.`
+          : `<b>13.</b> Kira bedelleri her ayın ${blank(paymentDays(s))} günleri arasında ${blank(`Kiraya Veren: ${payeeName(s)}`)} adına, İBAN ${u(s, 'iban', iban)} hesabına düzenli olarak yatırılacaktır.`)}
         ${clause(s, 14, `<b>14.</b> Kiracı, kiralayana ( ${deposit} ) depozito vermiş olup, kiralanan tahliye edildiğinde herhangi bir borcu ve hasar olmaması durumunda bu depozito kiracıya aynen iade edilecektir.`)}
         ${clause(s, 15, `<b>15. Kefil kira akdi devam ettiği süre kefaleti devam eder.aylık ${monthly ? monthly + ' TL' : 'TL'} Yıllık ${annual ? moneyFormat(annual) + ' TL' : 'TL'} kabul eder.</b>`)}
-        ${clause(s, 16, `${guarantorInline(s)} kefiliği kontrat süresi boyunca müteselsildir. İşbu sözleşmeyi Garantör ve müşterek müteselsil kefil sıfatıyla imzalayan ${blank(guarantorNames(s))} kiracının işbu sözleşmeden kaynaklanacak ve bu sözleşme ile ilgili her türlü edimlerine 6098 sayılı Türk Borçlar Kanunu’nun ilgili maddeleri çerçevesinde kiracı ile birlikte ve kiracının yanında müştereken ve müteselsilen sorumlu olacağını garanti etmektedir. Kiracı, kira sözleşmesi çerçevesinde kiralanan taşınmazın kullanılmasından kaynaklanacak kira ve sair borçlarını kiraya veren veya ilgili kuruluşlara karşı yerine getirmemesi durumunda, garantör aleyhine ayrıca bir hüküm alınmasına gerek olmaksızın kiracının borçlarından sorumlu olacaktır. Garantörün sorumluluğu müşterek ve müteselsil kefalet sorumluluğunu içermekte olup kiracılık ilişkisi devam ettiği müddetçe sorumluluğu devam edecektir.`)}
+        ${clause(s, 16, `${guarantorInline(s)} kefiliği kontrat süresi boyunca müteselsildir. İşbu sözleşmeyi Garantör ve müşterek müteselsil kefil sıfatıyla imzalayan ${blank(`Kefil: ${guarantorNames(s)}`)} kiracının işbu sözleşmeden kaynaklanacak ve bu sözleşme ile ilgili her türlü edimlerine 6098 sayılı Türk Borçlar Kanunu’nun ilgili maddeleri çerçevesinde kiracı ile birlikte ve kiracının yanında müştereken ve müteselsilen sorumlu olacağını garanti etmektedir. Kiracı, kira sözleşmesi çerçevesinde kiralanan taşınmazın kullanılmasından kaynaklanacak kira ve sair borçlarını kiraya veren veya ilgili kuruluşlara karşı yerine getirmemesi durumunda, garantör aleyhine ayrıca bir hüküm alınmasına gerek olmaksızın kiracının borçlarından sorumlu olacaktır. Garantörün sorumluluğu müşterek ve müteselsil kefalet sorumluluğunu içermekte olup kiracılık ilişkisi devam ettiği müddetçe sorumluluğu devam edecektir.`)}
         ${clause(s, 17, `<b>17.</b> Kiracı; kira akdi devam ettiği sürece gayrimenkulde kedi köpek gibi evcil hayvanlarla yabani olarak adlandırılabilecek hiçbir hayvanı besleyemez, barındıramaz.`)}
         ${clause(s, 18, `<b>18.</b> Aile konutu olarak kullanılmak üzere kiralanan taşınmazlarda kiracı, eşinin açık rızası olmadıkça kira sözleşmesini feshedemez. (T.B.K. Md. 349)`)}
         ${clause(s, 19, `<b>19.</b> Kiralananı tahliye etme kararı veren Kiracı, mukavele müddetinin son ayı içinde kiralananı görmeye gelen taliplerin gezip görmesine ve vasıflarını tetkik etmesine karşı koyamaz.`)}
